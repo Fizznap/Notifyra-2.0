@@ -50,12 +50,14 @@ module.exports = {
         files: [attachment],
       });
 
-      setTimeout(async () => {
-        await nukeMessage.delete();
-      }, 30000);
-    } catch (error) {
-      console.error('Error during nuke operation:', error);
-      await interaction.reply('There was an error trying to nuke the channel.');
+setTimeout(async () => {
+  try {
+    await nukeMessage.delete();
+  } catch (error) {
+    // Ignores the error if the message is already deleted (Error Code 10008)
+    // but logs any other unexpected errors.
+    if (error.code !== 10008) {
+      console.error('Failed to delete the nuke confirmation message:', error);
     }
-  },
-};
+  }
+}, 30000);

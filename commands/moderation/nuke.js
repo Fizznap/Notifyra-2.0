@@ -39,7 +39,7 @@ module.exports = {
 
       const attachment = new AttachmentBuilder(
         path.join(__dirname, '../../utils/nuke.gif')
-      ); // Using path.join for better file path handling
+      );
       const embed = new EmbedBuilder()
         .setColor('#FF0000')
         .setTitle('💣 Channel Nuked! 💣')

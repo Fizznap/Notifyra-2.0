@@ -1,78 +1,49 @@
-const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const { formatTime, createProgressBar } = require('../../utils/utils');
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('nowplaying')
-    .setDescription('Show information about the currently playing track'),
+    .setDescription('Shows the currently playing song with controls.'),
+
   async execute(interaction) {
-    const client = interaction.client;
-    const player = client.lavalink.players.get(interaction.guild.id);
+    const { client, guild } = interaction;
+    const player = client.lavalink.players.get(guild.id);
 
     if (!player || !player.queue.current) {
-      return interaction.reply({
-        content: '🎵 Nothing is playing right now!',
-        ephemeral: true,
-      });
+      return interaction.reply({ content: '🎵 Nothing is playing right now.', ephemeral: true });
     }
 
-    const current = player.queue.current;
-    const progress = createProgressBar(player.position, current.info.duration);
-    const queueLength = player.queue.tracks.length;
+    const track = player.queue.current;
+    const progressBar = createProgressBar(player.position, track.info.duration, 15);
 
     const embed = new EmbedBuilder()
-      .setColor('#B0C4DE')
-      .setAuthor({
-        name: 'Now Playing 🎵',
-        iconURL: client.user.displayAvatarURL(),
-      })
-      .setTitle(current.info.title)
-      .setURL(current.info.uri)
-      .setDescription(
-        `${progress}\n\`${formatTime(player.position)} / ${formatTime(current.info.duration)}\``
-      )
-      .setThumbnail(current.info.artworkUrl)
-      .addFields([
-        {
-          name: '👤 Artist',
-          value: `\`${current.info.author}\``,
-          inline: true,
-        },
-        {
-          name: '🎧 Requested by',
-          value: current.requester ? `${player.requester}` : 'Unknown',
-          inline: true,
-        },
-        {
-          name: '🎶 Up Next',
-          value:
-            queueLength > 0
-              ? `${queueLength} track${queueLength === 1 ? '' : 's'}`
-              : 'Nothing queued',
-          inline: true,
-        },
-        {
-          name: '🔊 Volume',
-          value: `\`${player.volume}%\``,
-          inline: true,
-        },
-        {
-          name: '🔄 Loop Mode',
-          value: `\`${player.repeatMode.charAt(0).toUpperCase() + player.repeatMode.slice(1)}\``,
-          inline: true,
-        },
-        {
-          name: '⏯️ Status',
-          value: `\`${player.paused ? 'Paused' : 'Playing'}\``,
-          inline: true,
-        },
-      ])
-      .setTimestamp()
-      .setFooter({
-        text: `Server: ${interaction.guild.name}`,
-        iconURL: interaction.guild.iconURL(),
-      });
+      .setColor('#3498db')
+      .setAuthor({ name: 'Now Playing', iconURL: guild.iconURL() })
+      .setTitle(track.info.title)
+      .setURL(track.info.uri)
+      .setThumbnail(track.info.artworkUrl)
+      .setDescription(`**Author:** \`${track.info.author}\`\n**Requested by:** ${track.requester}\n\n\`${formatTime(player.position)}\` ${progressBar} \`${formatTime(track.info.duration)}\``);
 
-    await interaction.reply({ embeds: [embed] });
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId('np_pause_resume')
+        .setLabel(player.paused ? '▶️ Resume' : '⏸️ Pause')
+        .setStyle(player.paused ? ButtonStyle.Success : ButtonStyle.Secondary),
+      new ButtonBuilder()
+        .setCustomId('np_skip')
+        .setLabel('⏭️ Skip')
+        .setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder()
+        .setCustomId('np_stop')
+        .setLabel('⏹️ Stop')
+        .setStyle(ButtonStyle.Danger),
+      new ButtonBuilder()
+        .setCustomId('np_loop')
+        .setLabel('🔁 Loop')
+        .setStyle(ButtonStyle.Secondary)
+    );
+
+    await interaction.reply({ embeds: [embed], components: [row] });
   },
 };
